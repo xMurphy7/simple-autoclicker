@@ -1,6 +1,7 @@
 import time
+import PIL.Image
+from PIL import ImageTk
 from tkinter import *
-from tkinter import ttk
 from threading import Thread
 import mouse
 import keyboard
@@ -17,7 +18,7 @@ def autoclick(click_key: str, time_ms: int):
     interval = time_ms / 1000  # time.sleep() uses seconds, so you need to divide input by 1000
     if click_key == 'left':
         while state:
-            # Real clicking speed is too slow compared to given intervals
+            # Real clicking speed is too slow compared to given intervals (best - 9.2cps during 10 seconds test, 100ms)
             mouse.click(LEFT)
             time.sleep(interval)
             # TODO: Loop doesn't end immediately after stop because thread has to wait until interval time passes
@@ -57,50 +58,68 @@ def keypress_callback(event):
         toggle()
 
 
-# TODO: Light/Dark Theme
 def theme():
-    pass
+    """Changes background color depending on theme_state boolean"""
+    global theme_state
+    theme_state ^= True
+    if theme_state:
+        theme_btn.config(image=sun_img, bg='#F3F3EF', activebackground='#F3F3EF')
+        frame.config(bg='#F3F3EF')
+        for label in [time_label, key_label, start_label]:
+            label.config(bg='#F3F3EF', fg='black')
+    else:
+        theme_btn.config(image=moon_img, bg='#253B52', activebackground='#253B52')
+        frame.config(bg='#253B52')
+        for label in [time_label, key_label, start_label]:
+            label.config(bg='#253B52', fg='#F3F3EF')
 
 
 """Main window configuration"""
 root = Tk()
 root.title('Simple autoclicker')  # Set the title
 root.resizable(False, False)  # Set width and height to non-resizable
-frame = ttk.Frame(root, padding=10)
+frame = Frame(root, padx=5, pady=5, bg='#F3F3EF')
 frame.grid()
 
 """Button to click configuration label and entry box"""
-key_label = ttk.Label(frame, text='Button to click')
-key_entry = ttk.Entry(frame, width=10, justify='center')
-key_entry.insert(END, 'left')
+key_label = Label(frame, text='Button to click', bg='#F3F3EF', fg='black')
+key_entry = Entry(frame, width=10, justify='center')
+key_entry.insert(0, 'left')  # Default button to click
 key_entry.config(state=DISABLED)  # Temporary
 # TODO: Add the possibility to change the button/key to click
 
 """Time configuration label and entry box"""
 time_reg = root.register(time_callback)
-time_label = ttk.Label(frame, text='Time config (in ms)')
-time_entry = ttk.Entry(frame, width=10, justify='center', validate='key', validatecommand=(time_reg, '%P'))
-time_entry.insert(END, '100')
+time_label = Label(frame, text='Time config (in ms)', bg='#F3F3EF', fg='black')
+time_entry = Entry(frame, width=10, justify='center', validate='key', validatecommand=(time_reg, '%P'))
+time_entry.insert(0, '100')  # Default time interval
 
 """Start/Stop configuration label and entry box"""
-start_label = ttk.Label(frame, text='Start/Stop hotkey')
-start_entry = ttk.Entry(frame, width=5, justify='center')
-start_entry.insert(END, 'F4')
+start_label = Label(frame, text='Start/Stop hotkey', bg='#F3F3EF', fg='black')
+start_entry = Entry(frame, width=5, justify='center')
+start_entry.insert(0, 'F4')  # Default hotkey for Start/Stop
 start_entry.config(state=DISABLED)  # Temporary
 # TODO: Add the possibility to change Start/Stop hotkey
 
 """Start/Stop mechanism"""
-state = False
-state_btn = ttk.Button(frame, text='Start', command=toggle)  # Start/Stop button
+state = False  # True for ON, False for OFF
+state_btn = Button(frame, text='Start', command=toggle, width=10)  # Start/Stop button
 keyboard.on_press(keypress_callback)  # Start/Stop hotkey
 
+"""Theme changing"""
+theme_state = True  # True for light, False for dark
+moon_img = ImageTk.PhotoImage(PIL.Image.open('moon.png').resize(size=(20, 25)))
+sun_img = ImageTk.PhotoImage(PIL.Image.open('sun.png').resize(size=(25, 25)))
+theme_btn = Button(frame, image=sun_img, command=theme, bg='#F3F3EF', activebackground='#F3F3EF', bd=0)
+
 """Widgets align"""
-key_label.grid(column=0, row=0)
-key_entry.grid(column=0, row=1)
-time_label.grid(column=1, row=0)
-time_entry.grid(column=1, row=1)
-start_label.grid(column=2, row=0)
-start_entry.grid(column=2, row=1)
-state_btn.grid(column=1, row=2)
+key_label.grid(column=0, row=0, padx=(30, 0))
+key_entry.grid(column=0, row=1, pady=20, padx=(30, 0))
+time_label.grid(column=1, row=0, padx=(30, 30))
+time_entry.grid(column=1, row=1, pady=20, padx=(30, 30))
+start_label.grid(column=2, row=0, padx=(0, 30))
+start_entry.grid(column=2, row=1, pady=20, padx=(0, 30))
+state_btn.grid(column=2, row=2, sticky='E')
+theme_btn.grid(column=0, row=2, sticky='W')
 
 root.mainloop()
