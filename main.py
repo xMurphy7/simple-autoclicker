@@ -16,12 +16,12 @@ def autoclick(click_key: str, time_ms: int):
     :param time_ms: Time given in milliseconds
     """
     interval = time_ms / 1000  # time.sleep() uses seconds, so you need to divide input by 1000
-    if click_key == 'left':
-        while state:
-            # Real clicking speed is too slow compared to given intervals (best - 9.2cps during 10 seconds test, 100ms)
-            mouse.click(LEFT)
-            time.sleep(interval)
-            # TODO: Loop doesn't end immediately after stop because thread has to wait until interval time passes
+    click_key = click_key.lower()
+    while state:
+        # Real clicking speed is too slow compared to given intervals (best - 9.2cps during 10 seconds test, 100ms)
+        mouse.click(button=click_key)
+        time.sleep(interval)
+        # TODO: Loop doesn't end immediately after stop because thread has to wait until interval time passes
 
 
 # TODO: Change button state to avoid auto-stopping the clicker
@@ -30,14 +30,14 @@ def toggle():
     True/False. If state is True, it calls autoclick()."""
     global state
     time_ms = time_entry.get()
-    click_key = key_entry.get()
+    click_key = cur_key.get()
     if time_ms != '' and not time_ms.startswith('0'):
         state ^= True
         time_ms = int(time_ms)
         if state:
             state_btn.config(text='Stop')  # Change text on the button to 'Stop'
-            t = Thread(target=autoclick, args=[str(click_key), time_ms])
-            t.start()
+            toggle_thread = Thread(target=autoclick, args=[click_key, time_ms])
+            toggle_thread.start()
         elif state is False:
             state_btn.config(text='Start')  # Change text on the button to 'Start'
         logging.info(state)
@@ -53,9 +53,22 @@ def time_callback(time_input):
 
 def keypress_callback(event):
     """Callback used to run toggle() function on pressing a key"""
-    start_key = start_entry.get().lower()
-    if event.name == start_key:
+    hotkey = str(start_config['text'])
+    if event.name == hotkey.lower():
         toggle()
+
+
+def change_hotkey():
+    """Create the thread that awaits for keyboard event and changes the hotkey for Start/Stop"""
+
+    def read_hotkey():
+        """Wait for a keyboard event and change the hotkey"""
+        hotkey = str(keyboard.read_key())
+        start_config['text'] = hotkey
+
+    start_config['text'] = '<INSERT>'
+    start_thread = Thread(target=read_hotkey)
+    start_thread.start()
 
 
 def theme():
@@ -71,7 +84,7 @@ def theme():
         theme_btn.config(image=moon_img, bg='#253B52', activebackground='#253B52')
         frame.config(bg='#253B52')
         for label in [time_label, key_label, start_label]:
-            label.config(bg='#253B52', fg='#F3F3EF')
+            label.config(bg='#253B52', fg='white')
 
 
 """Main window configuration"""
@@ -83,10 +96,9 @@ frame.grid()
 
 """Button to click configuration label and entry box"""
 key_label = Label(frame, text='Button to click', bg='#F3F3EF', fg='black')
-key_entry = Entry(frame, width=10, justify='center')
-key_entry.insert(0, 'left')  # Default button to click
-key_entry.config(state=DISABLED)  # Temporary
-# TODO: Add the possibility to change the button/key to click
+cur_key = StringVar(value='Left')
+key_config = OptionMenu(frame, cur_key, 'Left', 'Right', 'Middle')
+key_config.config(width=6, highlightthickness=0)
 
 """Time configuration label and entry box"""
 time_reg = root.register(time_callback)
@@ -96,10 +108,7 @@ time_entry.insert(0, '100')  # Default time interval
 
 """Start/Stop configuration label and entry box"""
 start_label = Label(frame, text='Start/Stop hotkey', bg='#F3F3EF', fg='black')
-start_entry = Entry(frame, width=5, justify='center')
-start_entry.insert(0, 'F4')  # Default hotkey for Start/Stop
-start_entry.config(state=DISABLED)  # Temporary
-# TODO: Add the possibility to change Start/Stop hotkey
+start_config = Button(frame, width=8, justify='center', text='f4', command=change_hotkey)
 
 """Start/Stop mechanism"""
 state = False  # True for ON, False for OFF
@@ -114,12 +123,14 @@ theme_btn = Button(frame, image=sun_img, command=theme, bg='#F3F3EF', activeback
 
 """Widgets align"""
 key_label.grid(column=0, row=0, padx=(30, 0))
-key_entry.grid(column=0, row=1, pady=20, padx=(30, 0))
+key_config.grid(column=0, row=1, pady=20, padx=(30, 0))
 time_label.grid(column=1, row=0, padx=(30, 30))
 time_entry.grid(column=1, row=1, pady=20, padx=(30, 30))
 start_label.grid(column=2, row=0, padx=(0, 30))
-start_entry.grid(column=2, row=1, pady=20, padx=(0, 30))
+start_config.grid(column=2, row=1, pady=20, padx=(0, 30))
 state_btn.grid(column=2, row=2, sticky='E')
 theme_btn.grid(column=0, row=2, sticky='W')
+
+# TODO: Force-stop auto-clicking if window has been closed
 
 root.mainloop()
