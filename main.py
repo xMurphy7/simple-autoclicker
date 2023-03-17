@@ -24,7 +24,13 @@ def autoclick(click_key: str, time_ms: int):
         # TODO: Loop doesn't end immediately after stop because thread has to wait until interval time passes
 
 
-# TODO: Change button state to avoid auto-stopping the clicker
+def disable_btn():
+    """Disable start/stop button for 1 second to prevent instant stopping"""
+    state_btn.config(state=DISABLED)
+    time.sleep(1)
+    state_btn.config(state=NORMAL)
+
+
 def toggle():
     """Function that runs Start/Stop mechanism. When button or hotkey is pressed, this function changes state to
     True/False. If state is True, it calls autoclick()."""
@@ -38,6 +44,8 @@ def toggle():
             state_btn.config(text='Stop')  # Change text on the button to 'Stop'
             toggle_thread = Thread(target=autoclick, args=[click_key, time_ms])
             toggle_thread.start()
+            disable_btn_thread = Thread(target=disable_btn)
+            disable_btn_thread.start()
         elif state is False:
             state_btn.config(text='Start')  # Change text on the button to 'Start'
         logging.info(state)
