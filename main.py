@@ -1,3 +1,4 @@
+import threading
 import time
 import PIL.Image
 from PIL import ImageTk
@@ -15,13 +16,12 @@ def autoclick(click_key: str, time_ms: int):
     :param click_key: Key to click
     :param time_ms: Time given in milliseconds
     """
+    logging.info('Started autoclick thread')
     interval = time_ms / 1000  # time.sleep() uses seconds, so you need to divide input by 1000
     click_key = click_key.lower()
     while state:
-        # Real clicking speed is too slow compared to given intervals (best - 9.2cps during 10 seconds test, 100ms)
         mouse.click(button=click_key)
         time.sleep(interval)
-        # TODO: Loop doesn't end immediately after stop because thread has to wait until interval time passes
 
 
 def disable_btn():
@@ -38,17 +38,19 @@ def toggle():
     time_ms = time_entry.get()
     click_key = cur_key.get()
     if time_ms != '' and not time_ms.startswith('0'):
+        logging.info(f'Current threads: {threading.enumerate()}')
         state ^= True
         time_ms = int(time_ms)
         if state:
+            logging.info(f'State = {state}')
             state_btn.config(text='Stop')  # Change text on the button to 'Stop'
-            toggle_thread = Thread(target=autoclick, args=[click_key, time_ms])
+            toggle_thread = Thread(target=autoclick, args=[click_key, time_ms], daemon=True)
             toggle_thread.start()
-            disable_btn_thread = Thread(target=disable_btn)
+            disable_btn_thread = Thread(target=disable_btn, daemon=True)
             disable_btn_thread.start()
         elif state is False:
+            logging.info(f'State = {state}')
             state_btn.config(text='Start')  # Change text on the button to 'Start'
-        logging.info(state)
 
 
 def time_callback(time_input):
@@ -75,7 +77,7 @@ def change_hotkey():
         start_config['text'] = hotkey
 
     start_config['text'] = '<INSERT>'
-    start_thread = Thread(target=read_hotkey)
+    start_thread = Thread(target=read_hotkey, daemon=True)
     start_thread.start()
 
 
@@ -102,7 +104,7 @@ root.resizable(False, False)  # Set width and height to non-resizable
 frame = Frame(root, padx=5, pady=5, bg='#F3F3EF')
 frame.grid()
 
-"""Button to click configuration label and entry box"""
+"""Button to click configuration label and option menu"""
 key_label = Label(frame, text='Button to click', bg='#F3F3EF', fg='black')
 cur_key = StringVar(value='Left')
 key_config = OptionMenu(frame, cur_key, 'Left', 'Right', 'Middle')
@@ -114,7 +116,7 @@ time_label = Label(frame, text='Time config (in ms)', bg='#F3F3EF', fg='black')
 time_entry = Entry(frame, width=10, justify='center', validate='key', validatecommand=(time_reg, '%P'))
 time_entry.insert(0, '100')  # Default time interval
 
-"""Start/Stop configuration label and entry box"""
+"""Start/Stop configuration label and button"""
 start_label = Label(frame, text='Start/Stop hotkey', bg='#F3F3EF', fg='black')
 start_config = Button(frame, width=8, justify='center', text='f4', command=change_hotkey)
 
@@ -138,7 +140,5 @@ start_label.grid(column=2, row=0, padx=(0, 30))
 start_config.grid(column=2, row=1, pady=20, padx=(0, 30))
 state_btn.grid(column=2, row=2, sticky='E')
 theme_btn.grid(column=0, row=2, sticky='W')
-
-# TODO: Force-stop auto-clicking if window has been closed
 
 root.mainloop()
