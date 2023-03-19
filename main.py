@@ -7,8 +7,15 @@ from threading import Thread
 import mouse
 import keyboard
 import logging
+import sys,os
 
-logging.basicConfig(filename='main.log', filemode='w', level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
+
+
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 
 def autoclick(click_key: str, time_ms: int):
@@ -127,8 +134,8 @@ keyboard.on_press(keypress_callback)  # Start/Stop hotkey
 
 """Theme changing"""
 theme_state = True  # True for light, False for dark
-moon_img = ImageTk.PhotoImage(PIL.Image.open('moon.png').resize(size=(20, 25)))
-sun_img = ImageTk.PhotoImage(PIL.Image.open('sun.png').resize(size=(25, 25)))
+moon_img = ImageTk.PhotoImage(PIL.Image.open(resource_path('moon.png')).resize(size=(20, 25)))
+sun_img = ImageTk.PhotoImage(PIL.Image.open(resource_path('sun.png')).resize(size=(25, 25)))
 theme_btn = Button(frame, image=sun_img, command=theme, bg='#F3F3EF', activebackground='#F3F3EF', bd=0)
 
 """Widgets align"""
